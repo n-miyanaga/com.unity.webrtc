@@ -39,18 +39,34 @@ namespace webrtc
 
     rtc::scoped_refptr<webrtc::I420BufferInterface> VideoFrameAdapter::ScaledBuffer::ToI420()
     {
-        return parent_->GetOrCreateFrameBufferForSize(Size(width_, height_))->ToI420();
+        auto buffer = parent_->GetOrCreateFrameBufferForSize(Size(width_, height_));
+        if(!buffer)
+        {
+            RTC_LOG(LS_ERROR) << "VideoFrameAdapter::ScaledBuffer::ToI420 buffer is null.";
+            return nullptr;
+        }
+        return buffer->ToI420();
     }
 
     const I420BufferInterface* VideoFrameAdapter::ScaledBuffer::GetI420() const
     {
-        return parent_->GetOrCreateFrameBufferForSize(Size(width_, height_))->GetI420();
+        auto buffer = parent_->GetOrCreateFrameBufferForSize(Size(width_, height_));
+        if(!buffer)
+        {
+            RTC_LOG(LS_ERROR) << "VideoFrameAdapter::ScaledBuffer::GetI420 buffer is null.";
+            return nullptr;
+        }
+        return buffer->GetI420();
     }
 
     rtc::scoped_refptr<VideoFrameBuffer>
     VideoFrameAdapter::ScaledBuffer::GetMappedFrameBuffer(rtc::ArrayView<VideoFrameBuffer::Type> types)
     {
         auto buffer = parent_->GetOrCreateFrameBufferForSize(Size(width_, height_));
+        if(!buffer)
+        {
+            return nullptr;
+        }
         return Contains(types, buffer->type()) ? buffer : nullptr;
     }
 
@@ -67,6 +83,14 @@ namespace webrtc
     {
     }
 
+    VideoFrameAdapter::~VideoFrameAdapter()
+    {
+        {
+            std::unique_lock<std::mutex> lock1(scaleLock_);
+            std::unique_lock<std::mutex> lock2(convertLock_);
+        }
+    }
+
     VideoFrameBuffer::Type VideoFrameAdapter::type() const
     {
 #if UNITY_IOS || UNITY_OSX || UNITY_ANDROID
@@ -81,19 +105,32 @@ namespace webrtc
 
     const I420BufferInterface* VideoFrameAdapter::GetI420() const
     {
-        return ConvertToVideoFrameBuffer(frame_)->GetI420();
+        auto buffer = ConvertToVideoFrameBuffer(frame_);
+        if(!buffer)
+        {
+            RTC_LOG(LS_ERROR) << "VideoFrameAdapter::GetI420 buffer is null.";
+            return nullptr;
+        }
+        return buffer->GetI420();
     }
 
     rtc::scoped_refptr<I420BufferInterface> VideoFrameAdapter::ToI420()
     {
-        return ConvertToVideoFrameBuffer(frame_)->ToI420();
+        auto buffer = ConvertToVideoFrameBuffer(frame_);
+        if(!buffer)
+        {
+            RTC_LOG(LS_ERROR) << "VideoFrameAdapter::ToI420 buffer is null.";
+            return nullptr;
+        }
+        return buffer->ToI420();
     }
 
     rtc::scoped_refptr<VideoFrameBuffer> VideoFrameAdapter::CropAndScale(
         int offset_x, int offset_y, int crop_width, int crop_height, int scaled_width, int scaled_height)
     {
-        return rtc::make_ref_counted<ScaledBuffer>(
-            rtc::scoped_refptr<VideoFrameAdapter>(this), scaled_width, scaled_height);
+        auto frame = rtc::scoped_refptr<VideoFrameAdapter>(this);
+        auto buffer = rtc::make_ref_counted<ScaledBuffer>(frame, scaled_width, scaled_height);
+        return buffer;
     }
 
     rtc::scoped_refptr<VideoFrameBuffer> VideoFrameAdapter::GetOrCreateFrameBufferForSize(const Size& size)

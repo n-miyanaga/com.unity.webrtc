@@ -70,7 +70,7 @@ namespace webrtc
             int offset_x, int offset_y, int crop_width, int crop_height, int scaled_width, int scaled_height) override;
 
     protected:
-        ~VideoFrameAdapter() override { }
+        ~VideoFrameAdapter() override;
 
     private:
         rtc::scoped_refptr<webrtc::VideoFrameBuffer> GetOrCreateFrameBufferForSize(const Size& size);
