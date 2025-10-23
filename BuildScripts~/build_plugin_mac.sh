@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-export LIBWEBRTC_DOWNLOAD_URL=https://github.com/Unity-Technologies/com.unity.webrtc/releases/download/M116-20250805/webrtc-mac.zip
+export LIBWEBRTC_DOWNLOAD_URL=https://github.com/kannan-xiao4/com.unity.webrtc/releases/download/M124/webrtc-mac.zip
 export SOLUTION_DIR=$(pwd)/Plugin~
 export DYLIB_FILE=$(pwd)/Runtime/Plugins/macOS/libwebrtc.dylib
 
