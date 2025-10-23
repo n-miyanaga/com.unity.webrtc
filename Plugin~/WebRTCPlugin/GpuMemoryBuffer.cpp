@@ -3,6 +3,8 @@
 #include "GpuMemoryBuffer.h"
 #include "GraphicsDevice/ITexture2D.h"
 
+#include <chrono>
+
 namespace unity
 {
 namespace webrtc

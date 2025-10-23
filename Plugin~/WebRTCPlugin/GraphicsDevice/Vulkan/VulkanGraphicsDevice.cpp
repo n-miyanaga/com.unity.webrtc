@@ -15,6 +15,8 @@
 #include "GpuMemoryBuffer.h"
 #endif
 
+#include <chrono>
+
 namespace unity
 {
 namespace webrtc

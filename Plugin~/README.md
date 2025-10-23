@@ -12,7 +12,7 @@ On windows, first, you need to install **Visual Studio 2022**. The build process
 
 ```powershell
 # Install CUDA
-choco install cuda --version=11.0.3
+download from https://developer.nvidia.com/cuda-12-9-1-download-archive
 
 # Install Windows SDK
 # WARNING: If you have versions of Windows SDK earlier than Version 22H2,
@@ -20,7 +20,7 @@ choco install cuda --version=11.0.3
 choco install -y vcredist2010 vcredist2013 vcredist140 windows-sdk-11-version-22h2-all
 
 # Install Vulkan
-choco install vulkan-sdk --version=1.2.182.0
+download 1.4.328.1 from https://vulkan.lunarg.com/sdk/home#windows
 
 # Install CMake 3.24.3
 choco install cmake -y --version=3.24.3
