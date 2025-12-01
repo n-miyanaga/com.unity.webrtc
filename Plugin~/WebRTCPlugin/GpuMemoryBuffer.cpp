@@ -82,7 +82,8 @@ namespace webrtc
         if (!device_->WaitSync(textureCpuRead_.get()))
         {
             RTC_LOG(LS_INFO) << "WaitSync failed.";
-            return nullptr;
+            // workaround for android vulkan
+            return I420Buffer::Create(textureCpuRead_->GetWidth(), textureCpuRead_->GetHeight());
         }
         return device_->ConvertRGBToI420(textureCpuRead_.get());
     }
