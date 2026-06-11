@@ -25,34 +25,33 @@ then
   gclient sync -D --force --reset
 fi
 
-# Support 16 KB page sizes for 64 bit Android
-patch -N "src/sdk/android/BUILD.gn" < "$COMMAND_DIR/patches/support_16kb_pagesizes_android.patch"
+patch -N "src/sdk/android/BUILD.gn" < "$COMMAND_DIR/patches/support_16kb_pagesizes_android.patch" || true
 
 # Add jsoncpp
-patch -N "src/BUILD.gn" < "$COMMAND_DIR/patches/add_jsoncpp.patch"
+patch -N "src/BUILD.gn" < "$COMMAND_DIR/patches/add_jsoncpp.patch" || true
 
 # Add visibility libunwind
-patch -N "src/buildtools/third_party/libunwind/BUILD.gn" < "$COMMAND_DIR/patches/add_visibility_libunwind.patch"
+patch -N "src/buildtools/third_party/libunwind/BUILD.gn" < "$COMMAND_DIR/patches/add_visibility_libunwind.patch" || true
 
 # Add deps libunwind
-patch -N "src/build/config/BUILD.gn" < "$COMMAND_DIR/patches/add_deps_libunwind.patch"
+patch -N "src/build/config/BUILD.gn" < "$COMMAND_DIR/patches/add_deps_libunwind.patch" || true
 
 # Add -mno-outline-atomics flag
-patch -N "src/build/config/compiler/BUILD.gn" < "$COMMAND_DIR/patches/add_nooutlineatomics_flag.patch"
+patch -N "src/build/config/compiler/BUILD.gn" < "$COMMAND_DIR/patches/add_nooutlineatomics_flag.patch" || true
 
 # downgrade to JDK8 because Unity supports OpenJDK version 1.8.
 # https://docs.unity3d.com/Manual/android-sdksetup.html
-patch -N "src/build/android/gyp/compile_java.py" < "$COMMAND_DIR/patches/downgradeJDKto8_compile_java.patch"
-patch -N "src/build/android/gyp/turbine.py" < "$COMMAND_DIR/patches/downgradeJDKto8_turbine.patch"
+patch -N "src/build/android/gyp/compile_java.py" < "$COMMAND_DIR/patches/downgradeJDKto8_compile_java.patch" || true
+patch -N "src/build/android/gyp/turbine.py" < "$COMMAND_DIR/patches/downgradeJDKto8_turbine.patch" || true
 
 # Fix SetRawImagePlanes() in LibvpxVp8Encoder
-patch -N "src/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc" < "$COMMAND_DIR/patches/libvpx_vp8_encoder.patch"
+patch -N "src/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc" < "$COMMAND_DIR/patches/libvpx_vp8_encoder.patch" || true
 
 pushd src
 # Fix AdaptedVideoTrackSource::video_adapter()
-patch -p1 < "$COMMAND_DIR/patches/fix_adaptedvideotracksource.patch"
-# Fix Android video encoder 
-patch -p1 < "$COMMAND_DIR/patches/fix_android_videoencoder.patch"
+patch -p1 -N < "$COMMAND_DIR/patches/fix_adaptedvideotracksource.patch" || true
+# Fix Android video encoder
+patch -p1 -N < "$COMMAND_DIR/patches/fix_android_videoencoder.patch" || true
 popd
 
 mkdir -p "$ARTIFACTS_DIR/lib"
@@ -66,6 +65,11 @@ do
   do
     # generate ninja files
     # use `treat_warnings_as_errors` option to avoid deprecation warnings
+    NDK_ARGS=""
+    if [ -n "${ANDROID_NDK:-}" ]; then
+      NDK_ARGS="android_ndk_root=\"$ANDROID_NDK\""
+    fi
+
     gn gen "$OUTPUT_DIR" --root="src" \
       --args="is_debug=${is_debug} \
       is_java_debug=${is_debug} \
@@ -79,7 +83,8 @@ do
       use_custom_libcxx=false \
       treat_warnings_as_errors=false \
       use_errorprone_java_compiler=false \
-      use_cxx17=true"
+      use_cxx17=true \
+      $NDK_ARGS"
 
     # build static library
     ninja -C "$OUTPUT_DIR" webrtc
@@ -99,6 +104,11 @@ pushd src
 for is_debug in "true" "false"
 do
   # use `treat_warnings_as_errors` option to avoid deprecation warnings
+  AAR_NDK_ARGS=""
+  if [ -n "${ANDROID_NDK:-}" ]; then
+    AAR_NDK_ARGS="android_ndk_root=\"$ANDROID_NDK\""
+  fi
+
   "$PYTHON3_BIN" tools_webrtc/android/build_aar.py \
     --build-dir $OUTPUT_DIR \
     --output $OUTPUT_DIR/libwebrtc.aar \
@@ -113,7 +123,8 @@ do
       use_custom_libcxx=false \
       treat_warnings_as_errors=false \
       use_errorprone_java_compiler=false \
-      use_cxx17=true"
+      use_cxx17=true \
+      $AAR_NDK_ARGS"
 
   filename="libwebrtc.aar"
   if [ $is_debug = "true" ]; then

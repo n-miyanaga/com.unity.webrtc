@@ -11,10 +11,18 @@ else
   CMAKE_BUILD_TYPE="Release"
 fi
 
-# Download LibWebRTC 
-curl -L $LIBWEBRTC_DOWNLOAD_URL > webrtc.zip
-unzip -d $SOLUTION_DIR/webrtc webrtc.zip 
-cp -f $SOLUTION_DIR/webrtc/lib/libwebrtc.aar $PLUGIN_DIR
+# Use locally-built libwebrtc.aar if available (built by build_libwebrtc_android.sh),
+# otherwise download the pre-built release from GitHub.
+LOCAL_WEBRTC_AAR="$(pwd)/artifacts/lib/libwebrtc.aar"
+if [ -f "$LOCAL_WEBRTC_AAR" ]; then
+  echo "Using locally-built libwebrtc.aar: $LOCAL_WEBRTC_AAR"
+  cp -f "$LOCAL_WEBRTC_AAR" "$PLUGIN_DIR/libwebrtc.aar"
+else
+  echo "Downloading libwebrtc.aar from $LIBWEBRTC_DOWNLOAD_URL"
+  curl -L $LIBWEBRTC_DOWNLOAD_URL > webrtc.zip
+  unzip -d $SOLUTION_DIR/webrtc webrtc.zip
+  cp -f $SOLUTION_DIR/webrtc/lib/libwebrtc.aar $PLUGIN_DIR
+fi
 
 # If debug build, download android-binaries that contains Vulkan validation layer
 if [ "$BUILD_TYPE" = "debug" ]; then
@@ -57,3 +65,23 @@ do
   popd
   rm -rf build
 done
+
+# Align all .so files in the AAR to 16KB for 16KB page size support.
+# zipalign is part of Android SDK Build-Tools; locate it via $ANDROID_HOME.
+ZIPALIGN_CMD=""
+if [ -n "${ANDROID_HOME:-}" ]; then
+  LATEST_BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+  ZIPALIGN_CMD="$ANDROID_HOME/build-tools/$LATEST_BUILD_TOOLS/zipalign"
+elif command -v zipalign &>/dev/null; then
+  ZIPALIGN_CMD="zipalign"
+fi
+
+if [ -n "$ZIPALIGN_CMD" ]; then
+  TEMP_AAR="$PLUGIN_DIR/libwebrtc_aligned.aar"
+  "$ZIPALIGN_CMD" -P 16 -f 4 "$PLUGIN_DIR/libwebrtc.aar" "$TEMP_AAR"
+  mv "$TEMP_AAR" "$PLUGIN_DIR/libwebrtc.aar"
+  echo "zipalign: .so files aligned to 16KB in libwebrtc.aar"
+else
+  echo "WARNING: zipalign not found. Set ANDROID_HOME to your Android SDK directory."
+  echo "  Install build-tools via: sdkmanager 'build-tools;35.0.0'"
+fi
