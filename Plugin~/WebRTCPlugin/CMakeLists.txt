@@ -264,6 +264,10 @@ if(Windows)
       MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 elseif(macOS)
   set_target_properties(WebRTCPlugin PROPERTIES LINK_FLAGS "-ObjC")
+elseif(Android)
+  target_link_options(WebRTCPlugin PRIVATE
+    "-Wl,-z,max-page-size=16384"
+    "-Wl,-z,common-page-size=16384")
 elseif(iOS)
   #
   # Build Setting Reference
